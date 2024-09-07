@@ -1,0 +1,88 @@
+go.property("target", vmath.vector3())
+
+function init(self)
+
+    local url_skelton = "/player/body#model"
+    self.bone_upper_arm_r = model.get_go(url_skelton, "upper_arm.R")
+    self.bone_forearm_r = model.get_go(url_skelton, "forearm.R")
+    self.bone_hand_r = model.get_go(url_skelton, "hand.R")
+
+    self.bone_upper_arm_l = model.get_go(url_skelton, "upper_arm.L")
+    self.bone_forearm_l = model.get_go(url_skelton, "forearm.L")
+    self.bone_hand_l = model.get_go(url_skelton, "hand.L")    
+
+
+    self.a_lr = vmath.quat()
+    self.b_lr = vmath.quat()
+end
+
+local function quat_inv(q)
+    local quat = vmath.quat()
+    quat.x = -q.x
+    quat.y = -q.y
+    quat.z = -q.z
+    quat.w = q.w
+    return quat
+end
+
+function math.clamp(val, lower, upper)
+    assert(val and lower and upper, "not very useful error message here")
+    if lower > upper then lower, upper = upper, lower end -- swap if boundaries supplied the wrong way
+    return math.max(lower, math.min(upper, val))
+end
+
+local function two_joint_ik(self, a4, b4, c4, t, eps, a_gr, b_gr) 
+
+    local a = vmath.vector3(a4.x, a4.y, a4.z)
+    local b = vmath.vector3(b4.x, b4.y, b4.z)
+    local c = vmath.vector3(c4.x, c4.y, c4.z)
+    
+    local a_lr = vmath.quat()
+    local b_lr = vmath.quat()
+
+    local lab = vmath.length(b - a)
+    local lcb = vmath.length(b - c)
+    local lat = math.clamp(vmath.length(t - a), eps, lab + lcb - eps)
+
+    local ac_ab_0 = math.acos(math.clamp(vmath.dot(vmath.normalize(c - a), vmath.normalize(b - a)), -1, 1))
+    local ba_bc_0 = math.acos(math.clamp(vmath.dot(vmath.normalize(a - b), vmath.normalize(c - b)), -1, 1))
+    local ac_at_0 = math.acos(math.clamp(vmath.dot(vmath.normalize(c - a), vmath.normalize(t - a)), -1, 1))
+
+    local ac_ab_1 = math.acos(math.clamp((lcb*lcb-lab*lab-lat*lat) / (-2*lab*lat), -1, 1))
+    local ba_bc_1 = math.acos(math.clamp((lat*lat-lab*lab-lcb*lcb) / (-2*lab*lcb), -1, 1))
+
+    local axis0 = vmath.normalize(vmath.cross(c - a, b - a))
+    local axis1 = vmath.normalize(vmath.cross(c - a, t - a))
+    
+    local r0 = vmath.quat_axis_angle(vmath.rotate(quat_inv(a_gr), axis0), ac_ab_1 - ac_ab_0)
+    local r1 = vmath.quat_axis_angle(vmath.rotate(quat_inv(b_gr), axis0), ba_bc_1 - ba_bc_0)
+    local r2 = vmath.quat_axis_angle(vmath.rotate(quat_inv(a_gr), axis1), ac_at_0)
+
+    return (a_lr * (r0 * r2)), (b_lr * r1)
+end
+
+
+function update(self, dt)
+
+end
+
+local spin = 0
+
+function on_message(self, message_id, message)
+    
+    if(message_id == hash("move_right_arm_to")) then 
+        local ua = go.get_world_transform(self.bone_upper_arm_r)
+        local fa = go.get_world_transform(self.bone_forearm_r)
+        local ha = go.get_world_transform(self.bone_hand_r)
+        local upper_rot = go.get_rotation(self.bone_upper_arm_r)
+        local fore_rot = go.get_rotation(self.bone_forearm_r)
+
+        upper_rot, fore_rot = two_joint_ik(self, ua.c2, fa.c2, ha.c2, message.target, 0.5, upper_rot, fore_rot )
+        upper_rot = vmath.quat_rotation_x(math.rad(spin))
+        -- go.set_rotation(upper_rot, self.bone_upper_arm_r)
+        go.set(self.bone_upper_arm_r, "rotation", upper_rot)
+        spin = spin + 1
+        spin = spin % 360
+        --go.set_rotation(fore_rot, self.bone_forearm_r)
+    end 
+end

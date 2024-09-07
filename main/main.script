@@ -1,0 +1,25 @@
+function init(self)
+	msg.post(".", "acquire_input_focus")
+	msg.post("@render:", "use_camera_projection")
+	msg.post("camera", "acquire_camera_focus")
+
+	-- position directional light
+	self.light = vmath.vector4(0, 3, 0, 0)
+	go.set("#quad", "light", self.light)
+
+	self.ik_ball = vmath.vector3( 0, 3, 2)
+	go.set_position(self.ik_ball, "/ik-control#model")
+end
+
+function on_input(self, action_id, action)
+	-- move directional light based on input
+	self.ik_ball.x = 4 * ((action.x - 480) / 480)
+	self.ik_ball.y = 4 * ((action.y - 320) / 320) + 2.0
+
+	local bone_hip_go = model.get_go("/person#model", "bip L UpperArm_08")
+	local bone_knee_go = model.get_go("/person#model", "bip L Forearm_09")
+	local bone_heel_go = model.get_go("/person#model", "bip L Hand_010")
+	ikext.two_joint( bone_hip_go, bone_knee_go, bone_heel_go, self.ik_ball )
+	
+	go.set_position(self.ik_ball, "/ik-control#model")
+end
