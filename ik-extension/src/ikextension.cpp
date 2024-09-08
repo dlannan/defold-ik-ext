@@ -6,10 +6,6 @@
 // include the Defold SDK
 #include <dmsdk/sdk.h>
 
-static dmTransform::Transform  transforms[2];
-static dmGameObject::HInstance root;
-static bool instance_set = false;
-
 extern void two_joint_ik(
     dmVMath::Vector3 hip_pos, dmVMath::Vector3 knee_pos, dmVMath::Vector3 heel_pos, dmVMath::Vector3 t, float eps,
     dmVMath::Quat hip_gr, dmVMath::Quat knee_gr, dmVMath::Quat &hip_lr, dmVMath::Quat &knee_lr);
@@ -45,19 +41,25 @@ static int IKTwoJoint(lua_State* L)
     dmVMath::Quat hip_lr        = dmGameObject::GetRotation(hip);
     dmVMath::Quat knee_lr       = dmGameObject::GetRotation(knee);
     two_joint_ik( pos_hip, pos_knee, pos_heel, *tgt, 0.001f, rot_hip, rot_knee, hip_lr, knee_lr);
-    
-    transforms[0] = dmTransform::Transform( pos_hip, hip_lr, dmVMath::Vector3(1, 1, 1));
-    transforms[1] = dmTransform::Transform( pos_knee, knee_lr, dmVMath::Vector3(1, 1, 1));
-    root = hip;
-    instance_set = true;
-    return 0;
-}
 
-void applyIKChanges()
-{    
-    if(instance_set)
-        // Set the bone transforms for the two bones we care about.
-        dmGameObject::SetBoneTransforms(root, transforms[0],transforms,2);
+    static dmTransform::Transform  transforms[2];
+    dmTransform::Transform component_transform = dmGameObject::GetWorldTransform(hip);
+
+    // pos_knee = dmVMath::Rotate(hip_lr, pos_knee);
+    // pos_heel = dmVMath::Rotate(knee_lr, pos_heel);
+
+    printf("pos_hip %g %g %g\n", pos_hip.getX(), pos_hip.getY(), pos_hip.getZ());
+    printf("pos_knee %g %g %g\n", pos_knee.getX(), pos_knee.getY(), pos_knee.getZ());
+    
+//    printf("hip_lr %g %g %g %g\n", hip_lr.getX(), hip_lr.getY(), hip_lr.getZ(), hip_lr.getW());
+//    printf("knee_lr %g %g %g %g\n", knee_lr.getX(), knee_lr.getY(), knee_lr.getZ(), knee_lr.getW());
+
+    transforms[0] = dmTransform::Transform( pos_hip, hip_lr, dmGameObject::GetScale(hip) );
+    transforms[1] = dmTransform::Transform( pos_knee, knee_lr, dmGameObject::GetScale(knee) );
+    transforms[2] = dmTransform::Transform( pos_heel, dmGameObject::GetRotation(heel), dmGameObject::GetScale(heel) );
+    
+    dmGameObject::SetBoneTransforms(hip, component_transform, transforms, 3);
+    return 0;
 }
 
 // Functions exposed to Lua
@@ -107,7 +109,6 @@ static dmExtension::Result FinalizeIKExtension(dmExtension::Params* params)
 static dmExtension::Result OnUpdateIKExtension(dmExtension::Params* params)
 {
     //dmLogInfo("OnUpdateIKExtension");
-    applyIKChanges();
     return dmExtension::RESULT_OK;
 }
 

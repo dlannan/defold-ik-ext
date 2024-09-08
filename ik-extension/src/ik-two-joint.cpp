@@ -14,18 +14,20 @@ dmVMath::Quat quat_inv(dmVMath::Quat q)
     return dmVMath::Quat(-q[0], -q[1], -q[2], q[3]);
 }
 
-dmVMath::Vector3 rotateVector(dmVMath::Quat q, dmVMath::Vector3 vec)
+dmVMath::Quat quat_mul(dmVMath::Quat q, dmVMath::Quat p)
 {
-    // t = 2q x v
-    float tx = 2. * (q[1] * vec[2] - q[2] * vec[1]);
-    float ty = 2. * (q[2] * vec[0] - q[0] * vec[2]);
-    float tz = 2. * (q[0] * vec[1] - q[1] * vec[0]);
+    return dmVMath::Quat(
+        p[3]*q[3] - p[0]*q[0] - p[1]*q[1] - p[2]*q[2],
+        p[3]*q[0] + p[0]*q[3] - p[1]*q[2] + p[2]*q[1],
+        p[3]*q[1] + p[0]*q[2] + p[1]*q[3] - p[2]*q[0],
+        p[3]*q[2] - p[0]*q[1] + p[1]*q[0] + p[2]*q[3]);
+}
 
-    // v + w t + q x t
-    vec[0] = vec[0] + q[3] * tx + q[1] * tz - q[2] * ty;
-    vec[1] = vec[1] + q[3] * ty + q[2] * tx - q[0] * tz;
-    vec[2] = vec[2] + q[3] * tz + q[0] * ty - q[1] * tx;
-    return vec;
+dmVMath::Quat quat_from_angle_axis(float angle, dmVMath::Vector3 axis)
+{
+    float c = cosf(angle / 2.0f);
+    float s = sinf(angle / 2.0f);
+    return dmVMath::Quat(c, s * axis.getX(), s * axis.getY(), s * axis.getZ());
 }
 
 dmVMath::Quat fromAngleAxis( float angle, dmVMath::Vector3 axis )
@@ -50,7 +52,6 @@ dmVMath::Quat fromAngleAxis( float angle, dmVMath::Vector3 axis )
 
     return ret;
 }
-
 
 // hip_pos - hip joint
 // knee_pos - knee join
@@ -81,17 +82,17 @@ void two_joint_ik(
 
     dmVMath::Vector3 axis0;
     if (use_stable_extension) {
-        dmVMath::Vector3 d = rotateVector(knee_gr,  dmVMath::Vector3(0, 0, 1));
+        dmVMath::Vector3 d = dmVMath::Rotate(knee_gr,  dmVMath::Vector3(0, 0, 1));
         axis0 = normalize(cross(heel_pos - hip_pos, d));
     } else {
         axis0 = normalize(cross(heel_pos - hip_pos, knee_pos - hip_pos));
     }
     dmVMath::Vector3 axis1 = normalize(cross(heel_pos - hip_pos, t - hip_pos));    
     
-    dmVMath::Quat r0 = fromAngleAxis(ac_ab_1 - ac_ab_0, rotateVector(quat_inv(hip_gr), axis0));
-    dmVMath::Quat r1 = fromAngleAxis(ba_bc_1 - ba_bc_0, rotateVector(quat_inv(knee_gr), axis0));
-    dmVMath::Quat r2 = fromAngleAxis(ac_at_0, rotateVector(quat_inv(hip_gr), axis1));
+    dmVMath::Quat r0 = quat_from_angle_axis(ac_ab_1 - ac_ab_0, dmVMath::Rotate(quat_inv(hip_gr), axis0));
+    dmVMath::Quat r1 = quat_from_angle_axis(ba_bc_1 - ba_bc_0, dmVMath::Rotate(quat_inv(knee_gr), axis0));
+    dmVMath::Quat r2 = quat_from_angle_axis(ac_at_0, dmVMath::Rotate(quat_inv(hip_gr), axis1));
 
-    hip_lr = hip_lr * r0 * r2;
-    knee_lr = knee_lr * r1;
+    hip_lr = quat_mul(hip_lr, quat_mul(r0, r2));
+    knee_lr = quat_mul(knee_lr, r1);
 }

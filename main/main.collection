@@ -44,10 +44,13 @@ embedded_instances {
   "  id: \"model\"\n"
   "  type: \"model\"\n"
   "  data: \"mesh: \\\"/assets/models/low_poly_people/scene.gltf\\\"\\n"
+  "skeleton: \\\"/assets/models/low_poly_people/scene.gltf\\\"\\n"
+  "animations: \\\"/assets/models/low_poly_people/scene.gltf\\\"\\n"
+  "default_animation: \\\"Take 001\\\"\\n"
   "name: \\\"{{NAME}}\\\"\\n"
   "materials {\\n"
   "  name: \\\"peopleColors\\\"\\n"
-  "  material: \\\"/builtins/materials/model.material\\\"\\n"
+  "  material: \\\"/assets/materials/model.material\\\"\\n"
   "  textures {\\n"
   "    sampler: \\\"tex0\\\"\\n"
   "    texture: \\\"/assets/models/low_poly_people/textures/peopleColors_baseColor.png\\\"\\n"
@@ -56,6 +59,10 @@ embedded_instances {
   "\"\n"
   "}\n"
   ""
+  rotation {
+    x: -0.70710677
+    w: 0.70710677
+  }
 }
 embedded_instances {
   id: "ik-control"
