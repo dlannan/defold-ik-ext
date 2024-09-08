@@ -59,9 +59,10 @@ embedded_instances {
   "\"\n"
   "}\n"
   ""
-  rotation {
-    x: -0.70710677
-    w: 0.70710677
+  scale3 {
+    x: 0.02
+    y: 0.02
+    z: 0.02
   }
 }
 embedded_instances {

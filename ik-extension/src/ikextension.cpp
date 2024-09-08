@@ -43,7 +43,7 @@ static int IKTwoJoint(lua_State* L)
     two_joint_ik( pos_hip, pos_knee, pos_heel, *tgt, 0.001f, rot_hip, rot_knee, hip_lr, knee_lr);
 
     static dmTransform::Transform  transforms[2];
-    dmTransform::Transform component_transform = dmGameObject::GetWorldTransform(hip);
+    // dmTransform::Transform component_transform = dmGameObject::GetWorldTransform(hip);
 
     // pos_knee = dmVMath::Rotate(hip_lr, pos_knee);
     // pos_heel = dmVMath::Rotate(knee_lr, pos_heel);
@@ -57,8 +57,16 @@ static int IKTwoJoint(lua_State* L)
     transforms[0] = dmTransform::Transform( pos_hip, hip_lr, dmGameObject::GetScale(hip) );
     transforms[1] = dmTransform::Transform( pos_knee, knee_lr, dmGameObject::GetScale(knee) );
     transforms[2] = dmTransform::Transform( pos_heel, dmGameObject::GetRotation(heel), dmGameObject::GetScale(heel) );
+
+    dmTransform::Transform t[2];
+    t[0].SetIdentity();
+    t[1].SetIdentity();
+    t[1].SetTranslation(*tgt);
+
+    dmTransform::Transform component_transform;
+    component_transform.SetIdentity();    
     
-    dmGameObject::SetBoneTransforms(hip, component_transform, transforms, 3);
+    dmGameObject::SetBoneTransforms(hip, component_transform, t, 2);
     return 0;
 }
 
